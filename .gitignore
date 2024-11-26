@@ -1,0 +1,4 @@
+/legged_gym/legged_gym/logs/
+*.egg-info/
+**/*.egg-info
+**/*.__pycache__/
