@@ -63,6 +63,25 @@ class PolicyExport(torch.nn.Module):
         traced_script_module.save(path)
         print("successfully export Actor policy to: ",path)
 
+    def export_onnx(self,path):
+        example_x = torch.zeros(1, 45*6)
+        output = self.forward(example_x)
+
+        torch.onnx.export(
+            self,
+            example_x,
+            path,
+            input_names=["example_x"],
+            output_names=["output"],
+            export_params=True,
+            verbose=True,
+            dynamic_axes={
+                "example_x":{0:'batch_size'}
+            }
+        )
+
+        print("successfully export Actor ONNX policy to: ",path)
+         
 def play(args):
     env_cfg, train_cfg = task_registry.get_cfgs(name=args.task)
     # override some parameters for testing
@@ -92,9 +111,10 @@ def play(args):
         os.makedirs(path, exist_ok=True)
         # export_policy_as_jit(ppo_runner.alg.actor_critic, path)
         export = PolicyExport(ppo_runner.alg.actor_critic.context_model, ppo_runner.alg.actor_critic.actor)
-        path = os.path.join(path,'policy.pt')
-        export.export(path)
-        policy = torch.jit.load(path,map_location='cuda:0')
+        path_jit = os.path.join(path,'policy.pt')
+        export.export(path_jit)
+        export.export_onnx(os.path.join(path,"policy.onnx"))
+        policy = torch.jit.load(path_jit,map_location='cuda:0')
      
     logger = Logger(env.dt)
     robot_index = 0 # which robot is used for logging
